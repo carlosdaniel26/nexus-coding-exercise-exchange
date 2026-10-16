@@ -1,0 +1,37 @@
+set shell := ["bash", "-uc"]
+
+root := justfile_directory()
+bin := "exchange_client"
+
+default:
+    @just --list
+
+build type="Debug":
+    conan profile detect --exist-ok >/dev/null 2>&1 || true
+    conan install {{root}} --output-folder={{root}}/build/{{type}} --build=missing -s build_type={{type}}
+    cmake -S {{root}} -B {{root}}/build/{{type}} -G Ninja \
+        -DCMAKE_TOOLCHAIN_FILE={{root}}/build/{{type}}/conan_toolchain.cmake \
+        -DCMAKE_BUILD_TYPE={{type}}
+    cmake --build {{root}}/build/{{type}}
+
+test type="Debug": (build type)
+    ctest --test-dir {{root}}/build/{{type}} --output-on-failure
+
+run *args: (build "Debug")
+    exec {{root}}/build/Debug/{{bin}} {{args}}
+
+debug *args: (build "Debug")
+    exec gdb -q -tui -ex "break main" -ex run --args {{root}}/build/Debug/{{bin}} {{args}}
+
+# profile a RelWithDebInfo run and render flamegraph.svg
+flamegraph samples="200" duration="8" out=(justfile_directory() / "flamegraph.svg"): (build "RelWithDebInfo")
+    if ! curl -s -o /dev/null "http://127.0.0.1:3000/symbols"; then \
+        echo "warning: no feed on 127.0.0.1:3000, profile will be mostly idle" >&2; \
+    fi
+    cd "$(mktemp -d)" && flamegraph -o {{out}} \
+        --post-process {{root}}/scripts/shorten-flamegraph.py \
+        -- {{root}}/build/RelWithDebInfo/{{bin}} {{samples}} {{duration}} 1 >/dev/null 2>&1 || true
+    @echo "wrote {{out}}"
+
+clean:
+    rm -rf {{root}}/build {{root}}/flamegraph.svg

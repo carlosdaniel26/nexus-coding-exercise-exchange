@@ -1,0 +1,4 @@
+build/
+CMakeUserPresets.json
+flamegraph.svg
+perf.data*

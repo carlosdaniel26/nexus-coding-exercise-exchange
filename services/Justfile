@@ -1,0 +1,35 @@
+set shell := ["bash", "-uc"]
+
+default:
+    @just --list
+
+build:
+    cargo build
+
+release:
+    cargo build --release
+
+check:
+    cargo check
+
+test:
+    cargo test
+
+feed accounts="20" rate="2":
+    cargo run -- --start-feed --num-accounts {{accounts}} --rate {{rate}}
+
+orders n="10":
+    cargo run -- --orders {{n}}
+
+submit account symbol side price quantity:
+    cargo run -- --submit {{account}} {{symbol}} {{side}} {{price}} {{quantity}}
+
+cancel account order_id:
+    cargo run -- --cancel {{account}} {{order_id}}
+
+debug:
+    cargo build
+    gdb -q --args ./target/debug/services --start-feed --num-accounts 20
+
+clean:
+    cargo clean
