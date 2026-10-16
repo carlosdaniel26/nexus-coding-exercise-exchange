@@ -6,10 +6,10 @@ feed_url := "http://127.0.0.1:3000"
 default:
     @just --list
 
-# build the Rust feed and the client (lang: cpp|rs)
-build lang="cpp":
+# build the Rust feed and the C++ client
+build:
     cd "{{root}}/services" && cargo build
-    cd "{{root}}/exercise-{{lang}}" && just build
+    cd "{{root}}/exercise" && just build
 
 # run the feed in the foreground (Ctrl-C to stop)
 feed accounts="20" rate="2":
@@ -20,7 +20,7 @@ feed accounts="20" rate="2":
     exec ./target/debug/services --start-feed --num-accounts {{accounts}} --rate {{rate}}
 
 # boot the feed and the client together, then tear the feed down
-demo lang="cpp" n="20":
+demo n="20":
     #!/usr/bin/env bash
     set -euo pipefail
     if curl -sf {{feed_url}}/symbols >/dev/null 2>&1; then
@@ -34,11 +34,11 @@ demo lang="cpp" n="20":
     trap 'kill "$feed_pid" 2>/dev/null || true' EXIT INT TERM
     until curl -sf {{feed_url}}/symbols >/dev/null; do sleep 0.2; done
     echo "feed ready at {{feed_url}}"
-    cd "{{root}}/exercise-{{lang}}"
+    cd "{{root}}/exercise"
     just run {{n}}
 
-# boot the feed, run the client test suite against it, then tear the feed down
-test lang="cpp":
+# boot the feed, run the C++ test suite against it, then tear the feed down
+test:
     #!/usr/bin/env bash
     set -euo pipefail
     if curl -sf {{feed_url}}/symbols >/dev/null 2>&1; then
@@ -52,9 +52,9 @@ test lang="cpp":
     trap 'kill "$feed_pid" 2>/dev/null || true' EXIT INT TERM
     until curl -sf {{feed_url}}/symbols >/dev/null; do sleep 0.2; done
     echo "feed ready at {{feed_url}}"
-    cd "{{root}}/exercise-{{lang}}"
+    cd "{{root}}/exercise"
     just test
 
-clean lang="cpp":
+clean:
     cd "{{root}}/services" && cargo clean
-    cd "{{root}}/exercise-{{lang}}" && just clean
+    cd "{{root}}/exercise" && just clean
